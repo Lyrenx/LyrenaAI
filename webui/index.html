@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Lyrena Core HUD</title>
+    <link rel="stylesheet" href="style.css">
+    <script type="text/javascript" src="qrc:///qtwebchannel/qwebchannel.js"></script>
+</head>
+<body>
+    <div id="app-container" class="mini-mode">
+        <div id="left-hud" class="hud-panel hidden">
+            <div class="widget-box">
+                <div class="label">SAAT</div>
+                <div id="digital-clock">00:00:00</div>
+            </div>
+
+            <div id="weather-panel" class="widget-box hidden">
+                <div class="label">HAVA DURUMU</div>
+                <div id="weather-city">--</div>
+                <div id="weather-temp">--</div>
+                <div id="weather-desc">SCANNING...</div>
+            </div>
+        </div>
+
+        <div id="center-hud">
+            <canvas id="lyrena-ring" width="320" height="320"></canvas>
+            <div id="status-text">LYRENA STANDBY</div>
+            <div id="brand-text">Lyrena AI</div>
+        </div>
+
+        <div id="right-hud" class="hud-panel hidden">
+            <div class="widget-box">
+                <div class="label">CPU KULLANIMI</div>
+                <div class="progress-bar"><div id="cpu-bar" class="fill"></div></div>
+                <div id="cpu-text" class="value">0%</div>
+                <div id="cpu-temp-text" class="subvalue">TEMP --</div>
+            </div>
+            <div class="widget-box">
+                <div class="label">RAM KULLANIMI</div>
+                <div class="progress-bar"><div id="ram-bar" class="fill"></div></div>
+                <div id="ram-text" class="value">0%</div>
+                <div id="ram-usage-text" class="subvalue">0 / 0 GB</div>
+            </div>
+            <div class="widget-box">
+                <div class="label">SISTEM</div>
+                <div id="system-summary" class="summary">READY</div>
+            </div>
+        </div>
+    </div>
+
+    <button id="re-listen-btn" class="hidden" onclick="triggerWake()">
+        <div class="mic-icon">&#9679;</div>
+    </button>
+
+    <script src="app.js"></script>
+</body>
+</html>

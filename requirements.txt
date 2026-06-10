@@ -1,0 +1,12 @@
+# UI
+PyQt6
+PyQt6-WebEngine
+
+# Voice input and speech
+vosk
+sounddevice
+edge-tts
+pywin32
+
+# System telemetry
+psutil
