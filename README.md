@@ -1,10 +1,10 @@
 # Lyrena AI
 
-Lyrena AI, koyu temali, yerel calisan ve moduler bir Turkce sesli asistan projesidir. Uygulama wake word ile aktif olur, Vosk ile ses tanir, Edge TTS ile konusur ve `actions/` klasorune yeni dosya ekleyerek kolayca genisletilir.
+Lyrena AI, yerel calisan ve moduler bir Turkce sesli asistan projesidir. Wake word ile aktif olur, Vosk ile ses tanir, Edge TTS ile konusur ve `actions/` klasorune yeni dosya eklenerek genisletilebilir.
 
 ## One-line summary
 
-Sesli komutlarla calisan, terminal loglari olan, tam ekran ve pencere modu destekli bir masaustu asistan kabugu.
+Sesli komutlarla calisan, tam ekran ve pencere modu destekli bir masaustu asistan kabugu.
 
 ## Ozellikler
 
@@ -29,7 +29,7 @@ pip install -r requirements.txt
 
 ### 2) Turkce STT modelini yerlestir
 
-`voicemodel/vosk-model-small-tr-0.3/` klasoru proje icinde hazir olmalidir.
+Vosk Turkce modelini indirip `voicemodel/vosk-model-small-tr-0.3/` klasorune yerlestir. Model boyutu nedeniyle bu klasor GitHub reposuna dahil edilmez. Model yoksa uygulama acilir ancak STT devre disi kalir.
 
 ### 3) Lyrena'yi baslat
 
@@ -37,7 +37,15 @@ pip install -r requirements.txt
 python main.py
 ```
 
-### 4) SmartThings TV kontrolu
+### 4) Debug modunu baslat
+
+```bash
+python debug.py
+```
+
+Debug modunda STT kapali calisir. Komutlari terminale yazarsin.
+
+### 5) SmartThings TV kontrolu (istege bagli)
 
 SmartThings token ve TV cihaz ID'sini kaynak koduna yazma. PowerShell'de asagidaki komutlari tek tek calistir. Token'i gercek degerinle degistir:
 
@@ -60,14 +68,6 @@ python -c "import actions.tv_actions as tv; import requests; r=requests.get('htt
 ```
 
 Beklenen sonuc `200` olmalidir. TV, SmartThings uygulamasinda cevrimici veya agda bekleme modunda olmalidir. TV zaten istenen durumdaysa Lyrena yeni bir komut gondermez; bu, SmartThings `409 ConflictError` hatalarini onler.
-
-### 5) Debug modunu baslat
-
-```bash
-python debug.py
-```
-
-Debug modunda STT kapali calisir. Komutlari terminale yazarsin.
 
 ## Temel kullanim
 
