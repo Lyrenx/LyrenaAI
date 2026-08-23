@@ -12,3 +12,10 @@ dist/
 *.bak
 config/whatsapp_contacts.json
 voicemodel/vosk-model-small-tr-0.3/
+client_secret.json
+token.json
+.env
+.env.*
+*.pem
+*.key
+credentials.json

@@ -5,8 +5,11 @@ PyQt6-WebEngine
 # Voice input and speech
 vosk
 sounddevice
+audioop-lts; python_version >= "3.13"
 edge-tts
 pywin32
 
 # System telemetry
 psutil
+google-assistant-sdk[samples] google-auth-oauthlib
+wakeonlan

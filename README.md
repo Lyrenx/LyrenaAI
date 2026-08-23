@@ -37,7 +37,31 @@ pip install -r requirements.txt
 python main.py
 ```
 
-### 4) Debug modunu baslat
+### 4) SmartThings TV kontrolu
+
+SmartThings token ve TV cihaz ID'sini kaynak koduna yazma. PowerShell'de asagidaki komutlari tek tek calistir. Token'i gercek degerinle degistir:
+
+```powershell
+$token = "YENI_SMARTTHINGS_TOKEN"
+$env:SMARTTHINGS_TOKEN = $token
+[Environment]::SetEnvironmentVariable("SMARTTHINGS_TOKEN", $token, "User")
+
+$deviceId = "SMARTTHINGS_TV_DEVICE_ID"
+$env:SMARTTHINGS_TV_DEVICE_ID = $deviceId
+[Environment]::SetEnvironmentVariable("SMARTTHINGS_TV_DEVICE_ID", $deviceId, "User")
+
+python main.py
+```
+
+Her komutu ayri satirda calistir. Yeni token'i SmartThings panelinden olustur ve daha once paylasilmis token'lari iptal et. Ayarin dogru oldugunu token'i yazdirmadan kontrol etmek icin:
+
+```powershell
+python -c "import actions.tv_actions as tv; import requests; r=requests.get('https://api.smartthings.com/v1/devices/'+tv.TV_DEVICE_ID+'/status', headers=tv.get_smartthings_headers()); print(r.status_code)"
+```
+
+Beklenen sonuc `200` olmalidir. TV, SmartThings uygulamasinda cevrimici veya agda bekleme modunda olmalidir. TV zaten istenen durumdaysa Lyrena yeni bir komut gondermez; bu, SmartThings `409 ConflictError` hatalarini onler.
+
+### 5) Debug modunu baslat
 
 ```bash
 python debug.py

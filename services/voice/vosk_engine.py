@@ -24,7 +24,9 @@ class VoskVoiceEngine(VoiceEngine):
             import sounddevice as sd  # type: ignore
             from vosk import KaldiRecognizer, Model  # type: ignore
         except Exception as exc:  # pragma: no cover - optional dependency
-            raise VoskUnavailableError("Vosk veya sounddevice yuklu degil") from exc
+            raise VoskUnavailableError(
+                f"Vosk/sounddevice import edilemedi: {type(exc).__name__}: {exc}"
+            ) from exc
 
         if not model_path.exists():
             raise VoskUnavailableError(f"Model bulunamadi: {model_path}")
