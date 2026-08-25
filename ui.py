@@ -25,8 +25,11 @@ from core.config import (
     WEATHER_TICK_MS,
 )
 from core.terminal import terminal_log
+from core.phone_link import PhoneLink
+from core.memory import MemoryStore
 from core.router import CommandRouter
 from core.state import AssistantState, DisplayMode
+from services.gemini import GeminiService
 from services.system_info import SystemInfoSampler
 from services.voice.engine import create_voice_engine
 from services.weather import WeatherService
@@ -66,10 +69,15 @@ class Controller:
         self.ready_color = "#2fe37b"
         self.busy_color = "#ff5b5b"
         self.idle_color = "#00ffcc"
+        self.memory = MemoryStore()
+        self.gemini = GeminiService(self.memory)
         self.action_context = ActionContext(controller=self)
         self.transcript_queue: queue.Queue[str] = queue.Queue()
+        self.phone_command_queue: queue.Queue[str] = queue.Queue()
+        self.phone_link = PhoneLink(self.handle_phone_command)
         self.router = CommandRouter(self)
         self.latest_weather: WeatherSnapshot | None = None
+        self.phone_link.start()
 
     def handle_transcript(self, text: str) -> None:
         terminal_log("HEARD", text)
@@ -78,6 +86,9 @@ class Controller:
     def handle_partial(self, text: str) -> None:
         terminal_log("PARTIAL", text)
 
+    def handle_phone_command(self, command: str) -> None:
+        self.phone_command_queue.put(command)
+
     def tick(self) -> None:
         while True:
             try:
@@ -85,6 +96,13 @@ class Controller:
             except queue.Empty:
                 break
             self.router.ingest_transcript(transcript)
+
+        while True:
+            try:
+                command = self.phone_command_queue.get_nowait()
+            except queue.Empty:
+                break
+            self.router.execute_command(command, response_target="phone")
 
         self.router.tick()
         self.window.sync_state_to_ui()
@@ -105,20 +123,26 @@ class Controller:
 
     def request_exit(self) -> None:
         self.state.should_exit = True
+        self.memory.close()
         self.window.request_exit()
 
     def request_restart(self) -> None:
         self.state.should_exit = True
+        self.memory.close()
         self.window.request_restart()
 
     def log_status(self, text: str) -> None:
         self.state.status_text = text
         terminal_log("STATUS", text)
 
-    def record_written(self, text: str) -> None:
+    def record_written(self, text: str, target: str = "pc") -> None:
+        terminal_log("SPOKE", text)
+        self.memory.add_message("assistant", text)
+        if target == "phone":
+            self.phone_link.speak(text)
+            return
         if self.window.controller.state.should_exit:
             return
-        terminal_log("SPOKE", text)
         try:
             self.window.speak_response(text)
         except Exception as exc:
@@ -151,6 +175,8 @@ class Controller:
 class LyrenaWindow(QMainWindow):
     weather_ready = pyqtSignal(object, object, object)
     debug_command = pyqtSignal(str)
+    gemini_response = pyqtSignal(str, str)
+    gemini_decision = pyqtSignal(object, str)
 
     def __init__(self, *, enable_voice: bool = True, debug_console: bool = False) -> None:
         super().__init__()
@@ -182,6 +208,8 @@ class LyrenaWindow(QMainWindow):
         self.tts_engine = create_tts_engine()
         self.weather_ready.connect(self._apply_weather_result)
         self.debug_command.connect(self._handle_debug_command)
+        self.gemini_response.connect(self._handle_gemini_response)
+        self.gemini_decision.connect(self._handle_gemini_decision)
         if hasattr(self.tts_engine, "speaking_started") and hasattr(self.tts_engine, "speaking_finished"):
             self.tts_engine.speaking_started.connect(self._on_tts_started)
             self.tts_engine.speaking_finished.connect(self._on_tts_finished)
@@ -196,6 +224,9 @@ class LyrenaWindow(QMainWindow):
         )
         self.page.settings().setAttribute(
             QWebEngineSettings.WebAttribute.LocalContentCanAccessRemoteUrls, True
+        )
+        self.page.settings().setAttribute(
+            QWebEngineSettings.WebAttribute.Accelerated2dCanvasEnabled, False
         )
         self.setCentralWidget(self.browser)
 
@@ -311,6 +342,38 @@ class LyrenaWindow(QMainWindow):
             return
 
         self.controller.router.execute_command(command)
+
+    @pyqtSlot(str, str)
+    def _handle_gemini_response(self, answer: str, response_target: str) -> None:
+        self.controller.state.status_text = "HAZIR"
+        self.controller.state.accent = self.controller.idle_color
+        self.controller.state.visual_state = "standby"
+        self.controller.record_written(answer, target=response_target)
+
+    @pyqtSlot(object, str)
+    def _handle_gemini_decision(self, decision: object, response_target: str) -> None:
+        if not isinstance(decision, dict):
+            self._handle_gemini_response(str(decision), response_target)
+            return
+
+        decision_type = str(decision.get("type", "answer")).strip().lower()
+        if decision_type == "action":
+            action_name = str(decision.get("action_name", "")).strip()
+            command = str(decision.get("command", "")).strip()
+            if action_name and self.controller.router.execute_action_by_name(
+                action_name,
+                command or action_name,
+                response_target=response_target,
+            ):
+                return
+            fallback = str(decision.get("message", "")).strip() or "Bu komut icin uygun bir action bulunamadi."
+            self._handle_gemini_response(fallback, response_target)
+            return
+
+        message = str(decision.get("message", "")).strip()
+        if not message:
+            message = "Gemini su anda yanit veremiyor."
+        self._handle_gemini_response(message, response_target)
 
     def _voice_error(self, exc: Exception) -> None:
         terminal_log("VOICE-ERR", f"{type(exc).__name__}: {exc}")
@@ -510,6 +573,7 @@ class LyrenaWindow(QMainWindow):
 
     def closeEvent(self, event) -> None:
         self.stop_voice()
+        self.controller.phone_link.stop()
         event.accept()
 
 
